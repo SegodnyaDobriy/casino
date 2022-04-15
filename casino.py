@@ -27,13 +27,26 @@ def blackjack(croupier):  # геймплей блэкджека
     print('Вы выбрали игру "Black Jack".\nВашим крупье назначен:', croupier + '.')
 
     hands = starting_set_of_cards()  # стартовые руки из 2-х карт
-    result_hands = get_other_cards(croupier, hands)  # руки после добора игрока
 
-    player_hand, croupier_hand, cards_pool = result_hands
+    player_cards, croupier_cards, cards = hands
 
-    score = sum_cards_values(player_hand, croupier_hand, croupier)  # ценность рук
+    start_winner = check_start_winner(player_cards, croupier_cards, croupier)
 
-    winner(score, croupier)     # определение победителя
+    if start_winner:  # если у игрока блекджек со старта - он выиграл
+        return print(start_winner)
+
+    result_player_hand = get_other_cards(croupier, hands)  # руки после добора игрока
+
+    if result_player_hand is True:    # если у игрока больше 21 очка после добора карт
+        return print('У вас больше 21-го очка, Вы проиграли!')
+
+    else:
+
+        player_hand, croupier_hand, cards_pool = result_player_hand
+
+        score = result_sum_cards_values(player_hand, croupier_hand, croupier)  # ценность рук
+
+        winner(score, croupier)  # определение победителя
 
 
 def starting_set_of_cards():  # стартовая рука у игроков(по 2 карты каждому из колоды, в которой 52 карты)
@@ -56,10 +69,32 @@ def starting_set_of_cards():  # стартовая рука у игроков(п
     return player_hand, croupier_hand, cards_pool
 
 
+def check_start_winner(player_cards, croupier_cards, croupier):     # проверка на блекджек у игрока со старта
+    cards_values = {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, 'J': 10, 'Q': 10, 'K': 10,
+                    'A': (11, 1)}  # ценность карт
+
+    player_hand_value = 0
+
+    for card in player_cards:
+
+        if card == 'A':  # сумма 2-х карт в руке у игрока не может превышать 21 очко, поэтому туз даёт всегда 11 очков
+            player_hand_value += cards_values[card][0]
+        else:
+            player_hand_value += cards_values[card]
+
+    if player_hand_value == 21:
+
+        print('В вашей руке:', *player_cards, )
+        print('В руке', croupier + 'а:', croupier_cards[0], '*')
+        return 'Black Jack, Вы выиграли!'
+    else:
+        return False
+
+
 def get_other_cards(croupier, hands):  # добор карт для игрока(в будущем и для крупье)
     player_hand, croupier_hand, cards_pool = hands
 
-    while True:     # выдаём карты игроку
+    while True:  # выдаём доп. карты игроку
 
         print('В вашей руке:', *player_hand, )
         print('В руке', croupier + 'а:', croupier_hand[0], '*')
@@ -68,15 +103,42 @@ def get_other_cards(croupier, hands):  # добор карт для игрока
 
         user_input = input()
 
-        if user_input == '+':  # если соглашается, то игроку дают ещё одну карту и идёт пересчёт суммы очков
+        if user_input == '+':  # если соглашается, то игроку дают ещё одну карту
             player_hand.append(cards_pool.pop(randint(0, len(cards_pool) - 1)))
+
+            check_pre_sum = preliminary_player_sum(player_hand)     # проверка, не превысил ли игрок 21 очко
+            if check_pre_sum:
+                return check_pre_sum
+
         elif user_input == '-':
             break
 
     return player_hand, croupier_hand, cards_pool
 
 
-def sum_cards_values(player_cards, croupier_cards, croupier_name):  # подсчёт ценности карт
+def preliminary_player_sum(player_cards):   # сумма очков игрока после взятия доп. карты
+    cards_values = {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, 'J': 10, 'Q': 10, 'K': 10,
+                    'A': (11, 1)}  # ценность карт
+
+    player_hand_value = 0
+
+    for card in player_cards:  # если у игрока >= 21 очков, то туз даёт 1 очко, иначе 11
+
+        if player_hand_value < 21 and card == 'A':
+            player_hand_value += cards_values[card][0]
+        elif player_hand_value >= 21 and card == 'A':
+            player_hand_value += cards_values[card][1]
+        else:
+            player_hand_value += cards_values[card]
+
+    if player_hand_value > 21:
+
+        return True
+    else:
+        return False
+
+
+def result_sum_cards_values(player_cards, croupier_cards, croupier_name):  # конечный подсчёт ценности карт
 
     cards_values = {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, 'J': 10, 'Q': 10, 'K': 10,
                     'A': (11, 1)}  # ценность карт
@@ -99,20 +161,20 @@ def sum_cards_values(player_cards, croupier_cards, croupier_name):  # подсч
         else:
             croupier_hand_value += cards_values[card]
 
-    print('Всркываемся...')
-    print('В вашей руке:', *player_cards, '    Сумма очков:', player_hand_value )
+
+    print('В вашей руке:', *player_cards, '    Сумма очков:', player_hand_value)
     print('В руке', croupier_name + 'а:', *croupier_cards, '    Сумма очков:', croupier_hand_value)
 
     return player_hand_value, croupier_hand_value
 
 
-def winner(players_score, croupier):    # определяем победителя
+def winner(players_score, croupier):  # определяем победителя
 
     player_score, croupier_score = players_score
 
-    if player_score == 21 and croupier_score != 21:     # блэкджек у игрока
+    if player_score == 21 and croupier_score != 21:  # блэкджек у игрока
         print('Black Jack, Вы выиграли!')
-    elif player_score == 21 and croupier_score != 21:     # блэкджек у крупье
+    elif player_score == 21 and croupier_score != 21:  # блэкджек у крупье
         print('Black Jack, ' + croupier + ' выиграл!')
     elif 21 - player_score < 21 - croupier_score:
         print('Вы выиграли!')
